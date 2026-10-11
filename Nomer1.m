@@ -1,53 +1,93 @@
-clc; clear;
+function Nomer1()
+clc; clear; close all;
 
-A = [10 -1 2 0 1; -1 11 -1 3 0; 2 -1 10 -1 1; 0 3 -1 8 -1; 1 0 1 -1 9];  % GANTI dengan matriks A kamu
-b = [6; 25; -11; 15; 8];   % GANTI dengan vektor b kamu
-n = length(b);
-maxIter = 2;
-x0 = zeros(n,1);
+% Matriks koefisien (A) dan vektor konstanta (b)
+A = [ 5  -1  -1   0   0;
+     -1   5  -1  -1   0;
+     -1  -1   4  -1  -1;
+      0   0   1   4  -2;
+      0   1  -1   1   4 ];
 
-% 1. Gauss
+b = [-1; 2; 6; 2; -1];
+
+% === Metode 1: Gauss Elimination (langsung) ===
 x_gauss = A\b;
+disp('Solusi metode Gauss (langsung):');
+disp(x_gauss);
 
-% 2. Gauss-Jordan
-Aug = [A, b];
-for i = 1:n
-  Aug(i,:) = Aug(i,:) / Aug(i,i);
-  for j = 1:n
-    if j ~= i
-      Aug(j,:) = Aug(j,:) - Aug(j,i) * Aug(i,:);
+% === Metode 2: Gauss-Jordan ===
+x_gj = metodeGaussJordan(A, b);
+disp('Solusi metode Gauss-Jordan:');
+disp(x_gj);
+
+% === Metode 3: Decomposisi LU ===
+x_lu = metodeLU(A, b);
+disp('Solusi metode Decomposisi LU:');
+disp(x_lu);
+
+% === Metode 4: Iterasi Jacobi ===
+x_jac = metodeJacobi(A, b, 20, 0.001);
+disp('Solusi metode Jacobi:');
+disp(x_jac);
+
+% === Metode 5: Iterasi Gauss-Seidel ===
+x_gs = metodeGaussSeidel(A, b, 20, 0.001);
+disp('Solusi metode Gauss-Seidel:');
+disp(x_gs);
+
+end % akhir fungsi utama
+
+function x = metodeGaussJordan(A, b)
+    A_aug = [A b];
+    n = size(A,1);
+    for i=1:n
+        A_aug(i,:) = A_aug(i,:) / A_aug(i,i);
+        for j=1:n
+            if j ~= i
+                A_aug(j,:) = A_aug(j,:) - A_aug(i,:) * A_aug(j,i);
+            end
+        end
     end
-  end
-end
-x_gj = Aug(:,n+1);
-
-% 3. Dekomposisi LU
-[L, U, P] = lu(A);
-y = L \ (P*b);
-x_lu = U \ y;
-
-% 4. Jacobi (2 iterasi)
-x_jac = x0;
-for k = 1:maxIter
-  x_new = x_jac;
-  for i = 1:n
-    s = A(i,:) * x_jac - A(i,i) * x_jac(i);
-    x_new(i) = (b(i) - s) / A(i,i);
-  end
-  x_jac = x_new;
+    x = A_aug(:,end);
 end
 
-% 5. Gauss-Seidel (2 iterasi)
-x_gs = x0;
-for k = 1:maxIter
-  for i = 1:n
-    s = A(i,:) * x_gs - A(i,i) * x_gs(i);
-    x_gs(i) = (b(i) - s) / A(i,i);
-  end
+function x = metodeLU(A, b)
+    [L, U] = lu(A);
+    y = L\b;
+    x = U\y;
+end
+function x = metodeJacobi(A, b, maxIter, tol)
+    n = length(b);
+    x = zeros(n,1);
+    for k = 1:maxIter
+        x_old = x;
+        for i = 1:n
+            s = 0;
+            for j = 1:n
+                if j ~= i
+                    s = s + A(i,j)*x_old(j);
+                end
+            end
+            x(i) = (b(i) - s)/A(i,i);
+        end
+        if norm(x - x_old, inf) < tol
+            break;
+        end
+    end
 end
 
-disp('Solusi Gauss');        disp(x_gauss);
-disp('Solusi Gauss-Jordan'); disp(x_gj);
-disp('Solusi LU');           disp(x_lu);
-disp('Solusi Jacobi');       disp(x_jac);
-disp('Solusi Gauss-Seidel'); disp(x_gs);
+function x = metodeGaussSeidel(A, b, maxIter, tol)
+    n = length(b);
+    x = zeros(n,1);
+    for k = 1:maxIter
+        x_old = x;
+        for i = 1:n
+            s1 = A(i,1:i-1)*x(1:i-1);
+            s2 = A(i,i+1:end)*x(i+1:end);
+            x(i) = (b(i) - s1 - s2)/A(i,i);
+        end
+        if norm(x - x_old, inf) < tol
+            break;
+        end
+    end
+end
